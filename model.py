@@ -263,7 +263,7 @@ class MixChanger(nn.Module):
         feature_merge = feature_merge.squeeze()
 
         # B 32 32 dim --> B 32 32 patch*patch*3 --> B patch*patch*3 32 32
-        expand_feature = self.ffn_and_expand(feature_merge).permute(0, 3 ,1, 2)
+        expand_feature = self.ffn_and_expand(feature_merge).permute(0, 3, 1, 2)
 
         # --> B patch*patch*input_channel 32*32 --> B 3 32*patch_size 32*patch_size --> B input_channel im_h im_w
         batch, dim, patch_h, patch_w = expand_feature.shape
@@ -284,12 +284,3 @@ class MixChanger(nn.Module):
 
         # --> B 1 im_h im_w
         return mask
-
-
-if __name__ == '__main__':
-    im1 = torch.rand(3, 3, 512, 512)
-    im2 = torch.rand(3, 3, 512, 512)
-    sam_feature = torch.rand(3, 256, 32, 32)
-    model = MixChanger()
-    mask = model(im1, im2, sam_feature)
-    print(mask.shape)

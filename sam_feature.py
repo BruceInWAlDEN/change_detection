@@ -16,16 +16,29 @@ out_put: [{
 from segment_anything import build_sam_vit_b
 from segment_anything.modeling.image_encoder import ImageEncoderViT
 import torch
+import os
+import glob
 
-# model = build_sam_vit_b(checkpoint='DATA/sam_vit_b_01ec64.pth')
+
+def make_data():
+    pass
 
 
 def make_sam_feature():
-    img = torch.rand(3, 3, 512, 512)
-    print(img.shape)
+    weight = torch.load('sam_vit_b_01ec64.pth')
+    weight = {k.replace('image_encoder.', ''): v for k, v in weight.items() if 'image_encoder.' in k}
     model = ImageEncoderViT(img_size=512)
-    out = model(img)
-    print(out.shape)
+    model_weight = model.state_dict()
+    model_weight.update(weight)
+    model.load_state_dict(model_weight)
+    model.eval()
+
+    pass
+    #
+    # img = torch.rand(3, 3, 512, 512)
+    # print(img.shape)
+    # out = model(img)
+    # print(out.shape)
     """
     torch.Size([3, 3, 512, 512])
     torch.Size([3, 256, 32, 32])
