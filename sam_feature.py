@@ -13,11 +13,8 @@ out_put: [{
     'masks': B(input prompts num) C(multi task) H W
 }, ...]
 """
-from segment_anything import build_sam_vit_b
-from segment_anything.modeling.image_encoder import ImageEncoderViT
+from model.segment_anything.modeling.image_encoder import ImageEncoderViT
 import torch
-import os
-import glob
 
 
 def make_data():

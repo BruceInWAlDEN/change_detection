@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from model import Mini
 import numpy as np
 from math import cos
 from math import pi
@@ -8,23 +7,21 @@ import torch
 import random
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import LambdaLR
-from model import Changer
-import torch.nn.functional as F
+from model.model import MixChanger, MixChanger_base
 from tqdm import tqdm
 from dataset import Mydata
 import torch.nn as nn
-from model import base
 
-
-CD_v1 = {
-    'model_name': 'CD_v1',
+CD_v2 = {
+    'model_name': 'MixChanger_v1',
     'cuda_id': 0,
-    'batch_size': 1,
+    'batch_size': 4,
     'epoch_start': 1,
-    'logdir_path': 'log/CD_v1_log',
-    'epoch_end': 200,
-    'check_epoch': [_ for _ in range(100) if _ % 4 == 1],
+    'epoch_end': 400,
+    'logdir_path': '',
+    'check_epoch': [_ for _ in range(400) if _ % 4 == 1],
     'recover_epoch': -1,
+    'data_root': ''
 }
 
 
@@ -62,9 +59,8 @@ def main_worker(cfg):
     device = torch.device('cuda', index=cfg['cuda_id'])
 
     # model
-    model = Changer(**base)
+    model = MixChanger(**MixChanger_base)
     model.to(device)
-
 
     # data
     train_data = Mydata('train')
