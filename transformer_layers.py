@@ -65,9 +65,17 @@ class Block(nn.Module):
         self.norm = nn.LayerNorm(eps=1e-6, normalized_shape=dim)
 
     def forward(self, x):
+
+        # 3 768 32 32 --> 3 32*32 768
+        batch, dim, patch_h, patch_w = x.shape
+        x = x.reshape(batch, dim, -1).permute(0, 2, 1)
+
         x = x + self.multi_head_attention(x)    # B patch_num dim
         x = self.norm(x)
         x = x + self.ffn(x)  # B patch_num dim
         x = self.norm(x)
+
+        # 3 32*32 768 --> 3 768 32 32
+        x = x.permute(0, 2, 1).reshape(batch, dim, patch_h, patch_w)
 
         return x

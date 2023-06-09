@@ -20,6 +20,7 @@ def train_val(val_ratio=0.2):
     val_set = all_im[:int(all_num * val_ratio)]
     train_set = all_im[int(all_num * val_ratio):]
 
+    wit
     torch.save(val_set, 'val_set.pth')
     torch.save(train_set, 'train_set.pth')
 

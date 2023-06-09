@@ -110,11 +110,10 @@ class MixFFN(nn.Module):
         layers = [fc1, pe_conv, self.activate, fc2]
         self.layers = nn.Sequential(*layers)
 
-    def forward(self, x, identity=None):
+    def forward(self, x):
         out = self.layers(x)
-        if identity is None:
-            identity = x
-        return identity + self.dropout_layer(out)
+
+        return out
 
 
 if __name__ == '__main__':
