@@ -90,7 +90,7 @@ def make_sam_feature():
 
     os.mkdir('DATA/CD_dataset/test/sam_feature')
 
-    for im1, im2, label, name in tqdm(loader, desc='make test sam feature'):
+    for im1, im2, name in tqdm(loader, desc='make test sam feature'):
         # --> 4 3 512 512
         im1 = im1.to(device)
         im2 = im2.to(device)
