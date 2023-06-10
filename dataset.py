@@ -34,7 +34,7 @@ class TempData(dd.Dataset):
 
         if self.c == 'test':
             im1 = self.data[item][0]
-            im2 = self.data[item][2]
+            im2 = self.data[item][1]
             im1 = ToTensor()(im1.copy())
             im2 = ToTensor()(im2.copy())
             return im1, im2, self.data[item][2]
@@ -54,8 +54,10 @@ class Mydata(object):
     def _set_dataset(self):
         self.dataset = []
         im_names = [_.split('.')[0] for _ in os.listdir(os.path.join(self.data_root_dir, self.c, 'Image1'))]
-        for name in im_names:
-            self.dataset.append(self.read_pair(name).append(name))
+        for name in tqdm(im_names, desc='load data: '):
+            re = self.read_pair(name)
+            re.append(name)
+            self.dataset.append(re)
 
     def get_loader(self):
         sample_loader = dd.DataLoader(
@@ -84,4 +86,5 @@ class Mydata(object):
 
 
 if __name__ == '__main__':
+    data = Mydata(data_root_dir='DATA/CD_dataset/', c='test')
     pass
