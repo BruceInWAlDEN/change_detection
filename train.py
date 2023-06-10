@@ -21,7 +21,7 @@ CD_v2 = {
     'logdir_path': '',
     'check_epoch': [_ for _ in range(400) if _ % 4 == 1],
     'recover_epoch': -1,
-    'data_root': ''
+    'data_root': 'DATA/CD_dataset'
 }
 
 
@@ -181,4 +181,4 @@ class DiceLoss(nn.Module):
 
 
 if __name__ == '__main__':
-    launch(CD_v1)
+    launch(CD_v2)

@@ -29,17 +29,15 @@ def make_sam_feature():
     model_weight.update(weight)
     model.load_state_dict(model_weight)
     model.eval()
+    """
+    input: torch.Size([3, 3, 512, 512])
+    output: torch.Size([3, 256, 32, 32])
+    """
+
 
     pass
-    #
-    # img = torch.rand(3, 3, 512, 512)
-    # print(img.shape)
-    # out = model(img)
-    # print(out.shape)
-    """
-    torch.Size([3, 3, 512, 512])
-    torch.Size([3, 256, 32, 32])
-    """
+
+
 
 
 if __name__ == '__main__':
