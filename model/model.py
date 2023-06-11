@@ -224,19 +224,22 @@ class MixChanger(nn.Module):
                 in_channels=6 * self.input_channel,
                 out_channels=6 * self.input_channel,
                 kernel_size=(8, 8),
-                padding='same'
+                padding='same',
+                padding_mode='reflect'
             ),
             nn.Conv2d(
                 in_channels=6 * self.input_channel,
                 out_channels=6 * self.input_channel,
                 kernel_size=(5, 5),
-                padding='same'
+                padding='same',
+                padding_mode='reflect'
             ),
             nn.Conv2d(
                 in_channels=6 * self.input_channel,
                 out_channels=6 * self.input_channel,
                 kernel_size=(3, 3),
-                padding='same'
+                padding='same',
+                padding_mode='reflect'
             ),
             nn.Conv2d(
                 in_channels=6 * self.input_channel,
