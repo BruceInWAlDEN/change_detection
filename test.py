@@ -3,79 +3,66 @@ import glob
 
 import numpy as np
 
-from dataset import Testdata, Mydata
+from dataset import Mydata
 import torch
-from model import Changer, base
+from model.model import MixChanger, MixChanger_base
 from tqdm import tqdm
 from PIL import Image
 import os
 import cv2
 import matplotlib.pyplot as plt
 
-test_v1 = {
+test_v2 = {
     'cuda_id': 1,
     'test_dir': '../CD_dataset/test',
     'result_save_dir': 'submit',
-    'model_weight': 'log/CD_v1_log/CD_v1_97.pth'
+    'model_weight': 'DATA/exp_v2/MixChanger_v1_1.pth',
+    'batch_size': 4
 }
-
-
-def test_pair(im1, im2, model):
-    """
-    :param im1: tensor C H W   cuda
-    :param im2: tensor C H W   cuda
-    :param model: cuda
-    :return: mask
-    """
-    im1 = im1.unsqueeze(0)
-    im2 = im2.unsqueeze(0)
-
-    with torch.no_grad():
-        outputs = model(im1, im2)
-
-    return outputs.squeeze()
 
 
 def test(cfg):
     device = torch.device('cuda', index=0)
 
-    # test_data = Testdata(cfg['test_dir'])
-    # loader = test_data.get_loader()
-    test_data = Testdata()
-    test_data.batch_size = 1
-    loader = test_data.get_loader()
-    model = Changer(**base)
+    # model
+    model = MixChanger(**MixChanger_base)
+    model.to(device)
+
+    # data
+    test_data = Mydata(data_root_dir='DATA/CD_dataset', c='train')
+    test_data.batch_size = cfg['batch_size']
+    test_loader = test_data.get_loader()
+
+    # model
     w = torch.load(cfg['model_weight'], map_location='cpu')['model_weights']
     model.load_state_dict(w)
     model.to(device)
     model.eval()
 
     result = []
-    for im1, im2, name in tqdm(loader, desc='Reference: '):
+    for im1, im2, label, sam_feature, name in tqdm(test_loader, desc='Reference: '):
         im1 = im1.to(device)
         im2 = im2.to(device)
-        im1 = im1.squeeze(0)
-        im2 = im2.squeeze(0)
-        mask = test_pair(im1, im2, model)
-        # submit.append(mask)
+        sam_feature = sam_feature.to(device)
+
+        with torch.no_grad():
+            mask = model(im1, im2, sam_feature)
+
         mask = mask.detach().clone().cpu()
 
-        pre = torch.where(mask > 0.5, torch.ones_like(mask), torch.zeros_like(mask)).long()
-        result.append((np.uint8(pre.numpy()), name))
-        # plt.subplot(1,2,1)
-        # plt.imshow(im1.cpu().numpy().transpose(1,2,0))
-        # plt.subplot(1,2,2)
-        # plt.imshow(im2.cpu().numpy().transpose(1,2,0))
-        # plt.show()
-        #
-        # plt.matshow(np.concatenate([label.squeeze().numpy(), pred], axis=1))
-        # plt.show()
-        # break
+        for index in range(len(name)):
+            pre = torch.where(mask[index] > 0.5, torch.ones_like(mask[index]), torch.zeros_like(mask[index])).long()
+            result.append((np.uint8(pre.numpy()), name))
 
-    for pre, name in result:
-        img = Image.fromarray(pre, mode='L')
-        img.save('./submit/' + name[0] + '.png')
+            plt.subplot(1,2,1)
+            plt.imshow(im1[index].cpu().numpy().transpose(1,2,0))
+            plt.subplot(1,2,2)
+            plt.imshow(im2[index].cpu().numpy().transpose(1,2,0))
+            plt.show()
+
+            plt.matshow(np.concatenate([label[index].squeeze().numpy(), pre], axis=1))
+            plt.show()
 
 
 if __name__ == '__main__':
-    test(test_v1)
+    test(test_v2)

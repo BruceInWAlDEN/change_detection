@@ -18,7 +18,7 @@ CD_v2 = {
     'batch_size': 4,
     'epoch_start': 1,
     'epoch_end': 400,
-    'logdir_path': '',
+    'logdir_path': 'DATA/exp_v2',
     'check_epoch': [_ for _ in range(400) if _ % 4 == 1],
     'recover_epoch': -1,
     'data_root': 'DATA/CD_dataset'
@@ -88,6 +88,8 @@ def main_worker(cfg):
     for epoch in range(cfg['epoch_start'], cfg['epoch_end'] + 1):
 
         # train
+        batch_count = 0
+
         model.train()
         loss_epoch = 0
         for im1, im2, label, sam_feature, name in tqdm(train_loader, desc='Train Epoch {}: '.format(epoch)):
@@ -105,10 +107,12 @@ def main_worker(cfg):
 
             loss_epoch += loss.item()
 
+            batch_count += 1
+
         schedule.step()
 
-        writer.add_scalar(tag='train_epoch_loss', global_step=epoch, scalar_value=loss_epoch)
-        print('train_epoch_loss', loss_epoch)
+        writer.add_scalar(tag='train_epoch_loss', global_step=epoch, scalar_value=loss_epoch/batch_count)
+        print('train_epoch_loss', loss_epoch/batch_count)
 
         # save check ================================================================================================
         if epoch in cfg['check_epoch']:
