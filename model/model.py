@@ -11,8 +11,8 @@ ori code: 写在open-cd中，LEVIR数据集最好的模型是ChangerEx
 """
 import torch.nn as nn
 import torch
-from transformer_layers import Block
-from changer_layers import FDAF, MixFFN, SpatialExchange, ChannelExchange
+from .transformer_layers import Block
+from .changer_layers import FDAF, MixFFN, SpatialExchange, ChannelExchange
 import torch.nn.functional as F
 
 

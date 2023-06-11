@@ -63,8 +63,8 @@ def main_worker(cfg):
     model.to(device)
 
     # data
-    train_data = Mydata('train')
-    val_data = Mydata('val')
+    train_data = Mydata(data_root_dir='DATA/CD_dataset', c='train')
+    val_data = Mydata(data_root_dir='DATA/CD_dataset', c='test')
     train_data.batch_size = cfg['batch_size']
     val_data.batch_size = cfg['batch_size']
     train_loader = train_data.get_loader()

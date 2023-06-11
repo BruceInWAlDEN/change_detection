@@ -64,7 +64,7 @@ class Mydata(object):
         self.data_root_dir = data_root_dir
         self.c = c
         self.dataset = None
-        self.batch_size = None
+        self.batch_size = 1
         self._set_dataset()
 
     def _set_dataset(self):
@@ -98,15 +98,23 @@ class Mydata(object):
             for s in ['Image1', 'Image2']:
                 numpy_im.append(cv2.imread(os.path.join(self.data_root_dir, self.c, s, im_name + format_[s])))
         if self.c == 'train':
-            for s in ['Image1', 'Image2', 'label1', 'sam_feature']:
+            for s in ['Image1', 'Image2', 'label1']:
                 numpy_im.append(cv2.imread(os.path.join(self.data_root_dir, self.c, s, im_name + format_[s])))
+            numpy_im.append(torch.load(os.path.join(self.data_root_dir, self.c, 'sam_feature', im_name + '.pth')))
         if self.c == 'test':
-            for s in ['Image1', 'Image2', 'sam_feature']:
+            for s in ['Image1', 'Image2']:
                 numpy_im.append(cv2.imread(os.path.join(self.data_root_dir, self.c, s, im_name + format_[s])))
+            numpy_im.append(torch.load(os.path.join(self.data_root_dir, self.c, 'sam_feature', im_name + '.pth')))
 
         return numpy_im
 
 
 if __name__ == '__main__':
     data = Mydata(data_root_dir='DATA/CD_dataset/', c='test')
+    loader = data.get_loader()
+    for im1, im2, sam_feature, name in tqdm(loader):
+        print(im1.shape)
+        print(im2.shape)
+        print(sam_feature.shape)
+        print(name[0])
     pass
