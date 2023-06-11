@@ -45,7 +45,7 @@ def make_sam_feature():
     model.to(device)
 
     # 提取所有训练集特征
-    data = Mydata(data_root_dir='DATA/CD_dataset/', c='train')
+    data = Mydata(data_root_dir='DATA/CD_dataset/', c='sam_train')
     data.batch_size = 4
     assert data.batch_size == 4, 'fix batch size == 4'
     loader = data.get_loader()
@@ -83,7 +83,7 @@ def make_sam_feature():
                        os.path.join('DATA/CD_dataset/train/sam_feature/{}.pth'.format(name[3])))
 
     # 提取所测试集特征
-    data = Mydata(data_root_dir='DATA/CD_dataset/', c='test')
+    data = Mydata(data_root_dir='DATA/CD_dataset/', c='sam_test')
     data.batch_size = 4
     assert data.batch_size == 4, 'fix batch size == 4'
     loader = data.get_loader()
@@ -117,7 +117,6 @@ def make_sam_feature():
                        os.path.join('DATA/CD_dataset/test/sam_feature/{}.pth'.format(name[2])))
             torch.save(torch.cat([fa[:, 32:, 32:], fb[:, 32:, 32:]], dim=0),
                        os.path.join('DATA/CD_dataset/test/sam_feature/{}.pth'.format(name[3])))
-    pass
 
 
 if __name__ == '__main__':

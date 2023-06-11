@@ -151,7 +151,7 @@ MixChanger_base = {
     'encoder_num_head': 12,
     'encoder_mlp_ratio': 4,
     'depth': None,
-    'sam_feature_dim': 256
+    'sam_feature_dim': 512
 }
 
 
@@ -163,7 +163,7 @@ class MixChanger(nn.Module):
                  encoder_num_head=12,
                  encoder_mlp_ratio=4,
                  depth=None,
-                 sam_feature_dim=256
+                 sam_feature_dim=512
                  ):
         super().__init__()
         if depth is None:
@@ -222,7 +222,7 @@ class MixChanger(nn.Module):
     def forward(self, im1, im2, sam_feature):
         """
         im1. im2: (B 3 512 512)  0-1 RGB
-        sam_feature: (B 256 32 32)
+        sam_feature: (B 512 32 32)
         --> mask (B im_h im_w)
         """
         # B 3 512 512 --> B dim 32 32

@@ -93,11 +93,11 @@ def main_worker(cfg):
         # train
         model.train()
         loss_epoch = 0
-        for im1, im2, label in tqdm(train_loader, desc='Train Epoch {}: '.format(epoch)):
+        for im1, im2, label, sam_feature, name in tqdm(train_loader, desc='Train Epoch {}: '.format(epoch)):
             im1 = im1.to(device)
             im2 = im2.to(device)
             label = label.to(device)
-            outputs = model(im1, im2)
+            outputs = model(im1, im2, sam_feature)
             loss = criterion(outputs, label.unsqueeze(1))
 
             # backward
@@ -115,13 +115,13 @@ def main_worker(cfg):
         # eval
         model.eval()
         val_loss = 0
-        for im1, im2, label in tqdm(val_loader, desc='Train Epoch {}: '.format(epoch)):
+        for im1, im2, label, sam_feature, name in tqdm(val_loader, desc='Train Epoch {}: '.format(epoch)):
             im1 = im1.to(device)
             im2 = im2.to(device)
             label = label.to(device)
 
             with torch.no_grad():
-                outputs = model(im1, im2)
+                outputs = model(im1, im2, sam_feature)
                 loss = criterion(outputs, label.unsqueeze(1))
             val_loss += loss.item()
 

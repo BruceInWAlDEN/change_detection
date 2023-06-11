@@ -23,7 +23,7 @@ class TempData(dd.Dataset):
         self.c = c
 
     def __getitem__(self, item):
-        if self.c == 'train':
+        if self.c == 'sam_train':
             im1 = self.data[item][0]
             im2 = self.data[item][1]
             im1 = ToTensor()(im1.copy())
@@ -32,12 +32,28 @@ class TempData(dd.Dataset):
             label = label[:, :, 0]    # 0-1
             return im1, im2, label, self.data[item][3]
 
-        if self.c == 'test':
+        if self.c == 'sam_test':
             im1 = self.data[item][0]
             im2 = self.data[item][1]
             im1 = ToTensor()(im1.copy())
             im2 = ToTensor()(im2.copy())
             return im1, im2, self.data[item][2]
+
+        if self.c == 'train':
+            im1 = self.data[item][0]
+            im2 = self.data[item][1]
+            im1 = ToTensor()(im1.copy())
+            im2 = ToTensor()(im2.copy())
+            label = self.data[item][2]
+            label = label[:, :, 0]  # 0-1
+            return im1, im2, label, self.data[item][3], self.data[item][4]
+
+        if self.c == 'test':
+            im1 = self.data[item][0]
+            im2 = self.data[item][1]
+            im1 = ToTensor()(im1.copy())
+            im2 = ToTensor()(im2.copy())
+            return im1, im2, self.data[item][2], self.data[item][3]
 
     def __len__(self):
         return len(self.data)
@@ -74,12 +90,18 @@ class Mydata(object):
         va;: im1 im2
         """
         numpy_im = []
-        format_ = {'Image1': '.tif', 'Image2': '.tif', 'label1': '.png'}
-        if self.c == 'train':
+        format_ = {'Image1': '.tif', 'Image2': '.tif', 'label1': '.png', 'sam_feature': '.pth'}
+        if self.c == 'sam_train':
             for s in ['Image1', 'Image2', 'label1']:
                 numpy_im.append(cv2.imread(os.path.join(self.data_root_dir, self.c, s, im_name + format_[s])))
-        if self.c == 'test':
+        if self.c == 'sam_test':
             for s in ['Image1', 'Image2']:
+                numpy_im.append(cv2.imread(os.path.join(self.data_root_dir, self.c, s, im_name + format_[s])))
+        if self.c == 'train':
+            for s in ['Image1', 'Image2', 'label1', 'sam_feature']:
+                numpy_im.append(cv2.imread(os.path.join(self.data_root_dir, self.c, s, im_name + format_[s])))
+        if self.c == 'test':
+            for s in ['Image1', 'Image2', 'sam_feature']:
                 numpy_im.append(cv2.imread(os.path.join(self.data_root_dir, self.c, s, im_name + format_[s])))
 
         return numpy_im
