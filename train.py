@@ -130,7 +130,8 @@ def lr_schedule(batch_size, max_epoch):
     def lr_(epoch):
         # optimizer init lr should be 1
         epoch = epoch + 1
-        warmup_epoch = int(max_epoch * 0.05)
+        # warmup_epoch = int(max_epoch * 0.05)
+        warmup_epoch = 2
         peak_lr = 1.5e-4*batch_size/256
         lr_min = 1e-7
         lr = 0

@@ -218,10 +218,31 @@ class MixChanger(nn.Module):
         )
         self.attention_im_merge = nn.Linear(encoder_dim, 1)
 
-        self.ffn_and_project = nn.Conv2d(
-            in_channels=6 * self.input_channel,
-            out_channels=1,
-            kernel_size=(1, 1)
+        # 细化边界
+        self.ffn_and_project = nn.Sequential(
+            nn.Conv2d(
+                in_channels=6 * self.input_channel,
+                out_channels=6 * self.input_channel,
+                kernel_size=(8, 8),
+                padding='same'
+            ),
+            nn.Conv2d(
+                in_channels=6 * self.input_channel,
+                out_channels=6 * self.input_channel,
+                kernel_size=(5, 5),
+                padding='same'
+            ),
+            nn.Conv2d(
+                in_channels=6 * self.input_channel,
+                out_channels=6 * self.input_channel,
+                kernel_size=(3, 3),
+                padding='same'
+            ),
+            nn.Conv2d(
+                in_channels=6 * self.input_channel,
+                out_channels=1,
+                kernel_size=(1, 1)
+            )
         )
 
         self.spatial_exchange = SpatialExchange()
