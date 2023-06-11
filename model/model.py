@@ -195,10 +195,18 @@ class MixChanger(nn.Module):
             Block(dim=encoder_dim, num_head=encoder_num_head, mlp_ratio=encoder_mlp_ratio
             ) for _ in range(depth[3])
         ])
-        self.sam_encoder = nn.Conv2d(
-            in_channels=self.sam_feature_dim,
-            out_channels=self.encoder_dim,
-            kernel_size=(1, 1)
+        self.sam_encoder = nn.Sequential(
+            nn.Conv2d(
+                in_channels=self.sam_feature_dim,
+                out_channels=self.sam_feature_dim,
+                kernel_size=(3, 3),
+                padding='same'
+            ),
+            nn.Conv2d(
+                in_channels=self.sam_feature_dim,
+                out_channels=self.encoder_dim,
+                kernel_size=(1, 1),
+            )
         )
         self.attention_feature_merge = nn.Linear(self.encoder_dim, 1)
         self.MixFFN = MixFFN(6 * self.input_channel, 6 * self.input_channel)
@@ -274,10 +282,10 @@ class MixChanger(nn.Module):
         feature_merge = feature_merge.permute(1, 3, 4, 2, 0) @ attention_score.unsqueeze(0).permute(1, 2, 3, 4, 0)
         feature_merge = feature_merge.squeeze()
 
-        # --> B 32 32 dim --> B 32 32 dim*2
-        feature_merge = torch.cat([feature_merge, sam_feature], dim=3)
+        # --> B dim+ 32 32 --> B 32 32 dim+
+        feature_merge = torch.cat([feature_merge.permute(0, 3, 1, 2), sam_feature], dim=1).permute(0, 2, 3, 1)
 
-        # B 32 32 dim --> B 32 32 patch*patch*3 --> B patch*patch*3 32 32
+        # --> B 32 32 patch*patch*3
         expand_feature = self.ffn_and_expand(feature_merge).permute(0, 3, 1, 2)
 
         # --> B patch*patch*input_channel 32 32
@@ -298,4 +306,4 @@ class MixChanger(nn.Module):
         mask = self.ffn_and_project(im_merge)
 
         # --> B 1 im_h im_w --> B im_h im_w
-        return mask.squeeze()
+        return mask.squeeze(1)

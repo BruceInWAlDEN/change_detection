@@ -97,8 +97,9 @@ def main_worker(cfg):
             im1 = im1.to(device)
             im2 = im2.to(device)
             label = label.to(device)
+            sam_feature = sam_feature.to(device)
             outputs = model(im1, im2, sam_feature)
-            loss = criterion(outputs, label.unsqueeze(1))
+            loss = criterion(outputs, label)
 
             # backward
             optimizer.zero_grad()
@@ -106,6 +107,8 @@ def main_worker(cfg):
             optimizer.step()
 
             loss_epoch += loss.item()
+
+            print(loss.item())
 
         schedule.step()
 
@@ -119,10 +122,11 @@ def main_worker(cfg):
             im1 = im1.to(device)
             im2 = im2.to(device)
             label = label.to(device)
+            sam_feature = sam_feature.to(device)
 
             with torch.no_grad():
                 outputs = model(im1, im2, sam_feature)
-                loss = criterion(outputs, label.unsqueeze(1))
+                loss = criterion(outputs, label)
             val_loss += loss.item()
 
         writer.add_scalar(tag='val_epoch_loss', global_step=epoch, scalar_value=val_loss)

@@ -10,7 +10,7 @@ from torchvision.transforms import ToTensor
 
 
 """
-data on RAM, at least 10GB RAM is needed
+data on RAM, at least 20GB RAM is needed
 all data is used to train model, there is no val set.
 manually choose best model
 """
