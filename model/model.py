@@ -227,6 +227,7 @@ class MixChanger(nn.Module):
                 padding='same',
                 padding_mode='reflect'
             ),
+            nn.GELU(),
             nn.Conv2d(
                 in_channels=6 * self.input_channel,
                 out_channels=6 * self.input_channel,
@@ -234,6 +235,7 @@ class MixChanger(nn.Module):
                 padding='same',
                 padding_mode='reflect'
             ),
+            nn.GELU(),
             nn.Conv2d(
                 in_channels=6 * self.input_channel,
                 out_channels=6 * self.input_channel,
@@ -241,6 +243,7 @@ class MixChanger(nn.Module):
                 padding='same',
                 padding_mode='reflect'
             ),
+            nn.GELU(),
             nn.Conv2d(
                 in_channels=6 * self.input_channel,
                 out_channels=1,

@@ -12,13 +12,13 @@ from tqdm import tqdm
 from dataset import Mydata
 import torch.nn as nn
 
-CD_v3 = {
-    'model_name': 'MixChanger_v3',
+CD_v4 = {
+    'model_name': 'MixChanger_v4',
     'cuda_id': 0,
     'batch_size': 4,
     'epoch_start': 1,
     'epoch_end': 400,
-    'logdir_path': 'DATA/exp_v3',
+    'logdir_path': 'DATA/exp_v4',
     'check_epoch': [_ for _ in range(400) if _ % 4 == 1],
     'recover_epoch': -1,
     'data_root': 'DATA/CD_dataset'
