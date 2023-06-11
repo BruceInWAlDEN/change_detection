@@ -64,11 +64,8 @@ def main_worker(cfg):
 
     # data
     train_data = Mydata(data_root_dir='DATA/CD_dataset', c='train')
-    val_data = Mydata(data_root_dir='DATA/CD_dataset', c='test')
     train_data.batch_size = cfg['batch_size']
-    val_data.batch_size = cfg['batch_size']
     train_loader = train_data.get_loader()
-    val_loader = val_data.get_loader()
 
     # lr schedule
     sche = lr_schedule(cfg['batch_size'], max_epoch=cfg['epoch_end'])
@@ -108,29 +105,10 @@ def main_worker(cfg):
 
             loss_epoch += loss.item()
 
-            print(loss.item())
-
         schedule.step()
 
         writer.add_scalar(tag='train_epoch_loss', global_step=epoch, scalar_value=loss_epoch)
         print('train_epoch_loss', loss_epoch)
-
-        # eval
-        model.eval()
-        val_loss = 0
-        for im1, im2, label, sam_feature, name in tqdm(val_loader, desc='Train Epoch {}: '.format(epoch)):
-            im1 = im1.to(device)
-            im2 = im2.to(device)
-            label = label.to(device)
-            sam_feature = sam_feature.to(device)
-
-            with torch.no_grad():
-                outputs = model(im1, im2, sam_feature)
-                loss = criterion(outputs, label)
-            val_loss += loss.item()
-
-        writer.add_scalar(tag='val_epoch_loss', global_step=epoch, scalar_value=val_loss)
-        print('val_epoch_loss', val_loss)
 
         # save check ================================================================================================
         if epoch in cfg['check_epoch']:
