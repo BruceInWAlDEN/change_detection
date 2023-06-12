@@ -12,13 +12,13 @@ from tqdm import tqdm
 from dataset import Mydata
 import torch.nn as nn
 
-CD_v4 = {
-    'model_name': 'MixChanger_v4',
+CD_v2 = {
+    'model_name': 'MixChanger_v2',
     'cuda_id': 0,
     'batch_size': 4,
     'epoch_start': 1,
     'epoch_end': 400,
-    'logdir_path': 'DATA/exp_v4',
+    'logdir_path': 'DATA/exp_v2',
     'check_epoch': [_ for _ in range(400) if _ % 4 == 1],
     'recover_epoch': -1,
     'data_root': 'DATA/CD_dataset'
@@ -167,4 +167,4 @@ class DiceLoss(nn.Module):
 
 
 if __name__ == '__main__':
-    launch(CD_v4)
+    launch(CD_v2)
