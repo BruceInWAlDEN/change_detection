@@ -16,7 +16,7 @@ test_v2 = {
     'cuda_id': 1,
     'test_dir': '../CD_dataset/test',
     'result_save_dir': 'submit',
-    'model_weight': 'DATA/exp_v3/MixChanger_v3_9.pth',
+    'model_weight': 'DATA/exp_v4/MixChanger_v4_77.pth',
     'batch_size': 4
 }
 
