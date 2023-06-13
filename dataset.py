@@ -69,7 +69,11 @@ class Mydata(object):
 
     def _set_dataset(self):
         self.dataset = []
-        im_names = [_.split('.')[0] for _ in os.listdir(os.path.join(self.data_root_dir, self.c, 'Image1'))]
+        if self.c == 'sam_train' or self.c == 'train':
+            im_names = [_.split('.')[0] for _ in os.listdir(os.path.join(self.data_root_dir, 'train', 'Image1'))]
+        if self.c == 'sam_test' or self.c == 'test':
+            im_names = [_.split('.')[0] for _ in os.listdir(os.path.join(self.data_root_dir, 'test', 'Image1'))]
+
         for name in tqdm(im_names, desc='load data: '):
             re = self.read_pair(name)
             re.append(name)
@@ -93,10 +97,10 @@ class Mydata(object):
         format_ = {'Image1': '.tif', 'Image2': '.tif', 'label1': '.png', 'sam_feature': '.pth'}
         if self.c == 'sam_train':
             for s in ['Image1', 'Image2', 'label1']:
-                numpy_im.append(cv2.imread(os.path.join(self.data_root_dir, self.c, s, im_name + format_[s])))
+                numpy_im.append(cv2.imread(os.path.join(self.data_root_dir, 'train', s, im_name + format_[s])))
         if self.c == 'sam_test':
             for s in ['Image1', 'Image2']:
-                numpy_im.append(cv2.imread(os.path.join(self.data_root_dir, self.c, s, im_name + format_[s])))
+                numpy_im.append(cv2.imread(os.path.join(self.data_root_dir, 'test', s, im_name + format_[s])))
         if self.c == 'train':
             for s in ['Image1', 'Image2', 'label1']:
                 numpy_im.append(cv2.imread(os.path.join(self.data_root_dir, self.c, s, im_name + format_[s])))
