@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 
 test_v2 = {
     'cuda_id': 1,
-    'test_dir': '../CD_dataset/test',
     'result_save_dir': 'submit',
     'model_weight': 'DATA/MixChanger_v4_353.pth',
     'batch_size': 4
@@ -29,7 +28,7 @@ def test(cfg):
     model.to(device)
 
     # data
-    test_data = Mydata(data_root_dir='DATA/CD_dataset', c='train')
+    test_data = Mydata(data_root_dir='DATA/CD_dataset', c='test')
     test_data.batch_size = cfg['batch_size']
     test_loader = test_data.get_loader()
 
@@ -40,7 +39,7 @@ def test(cfg):
     model.eval()
 
     result = []
-    for im1, im2, label, sam_feature, name in tqdm(test_loader, desc='Reference: '):
+    for im1, im2, sam_feature, name in tqdm(test_loader, desc='Reference: '):
         im1 = im1.to(device)
         im2 = im2.to(device)
         sam_feature = sam_feature.to(device)
@@ -52,16 +51,21 @@ def test(cfg):
 
         for index in range(len(name)):
             pre = torch.where(mask[index] > 0.5, torch.ones_like(mask[index]), torch.zeros_like(mask[index])).long()
-            result.append((np.uint8(pre.numpy()), name))
+            result.append((np.uint8(pre.numpy()), name[index]))
 
-            plt.subplot(1,2,1)
-            plt.imshow(im1[index].cpu().numpy().transpose(1,2,0))
-            plt.subplot(1,2,2)
-            plt.imshow(im2[index].cpu().numpy().transpose(1,2,0))
-            plt.show()
+            # plt.subplot(1,2,1)
+            # plt.imshow(im1[index].cpu().numpy().transpose(1,2,0))
+            # plt.subplot(1,2,2)
+            # plt.imshow(im2[index].cpu().numpy().transpose(1,2,0))
+            # plt.show()
+            #
+            # plt.matshow(np.concatenate([label[index].squeeze().numpy(), pre], axis=1))
+            # plt.show()
 
-            plt.matshow(np.concatenate([label[index].squeeze().numpy(), pre], axis=1))
-            plt.show()
+    # save
+    for mask, name in result:
+        img = Image.fromarray(mask, mode='L')  # 创建PIL图像对象
+        img.save("DATA/submit/" + name + '.png')
 
 
 if __name__ == '__main__':
