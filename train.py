@@ -11,14 +11,16 @@ from model.model import MixChanger, MixChanger_base
 from tqdm import tqdm
 from dataset import Mydata
 import torch.nn as nn
+import torch.nn.functional as F
 
-CD_v2 = {
-    'model_name': 'MixChanger_v2',
+
+MixChanger_v1 = {
+    'model_name': 'MixChanger_v1',
     'cuda_id': 0,
     'batch_size': 4,
     'epoch_start': 1,
     'epoch_end': 400,
-    'logdir_path': 'DATA/exp_v2',
+    'logdir_path': 'DATA/MxiChanger_v1_log',
     'check_epoch': [_ for _ in range(400) if _ % 4 == 1],
     'recover_epoch': -1,
     'data_root': 'DATA/CD_dataset'
@@ -53,6 +55,8 @@ def main_worker(cfg):
         print(k, v)
 
     # metrics
+    if not os.path.exists(cfg['logdir_path']):
+        os.mkdir(cfg['logdir_path'])
     writer = SummaryWriter(os.path.join(cfg['logdir_path'], 'tf'))
 
     # device
@@ -63,9 +67,13 @@ def main_worker(cfg):
     model.to(device)
 
     # data
-    train_data = Mydata(data_root_dir='DATA/CD_dataset', c='train')
+    train_data = Mydata(data_root_dir=cfg['data_root'], c='train')
     train_data.batch_size = cfg['batch_size']
     train_loader = train_data.get_loader()
+
+    val_data = Mydata(data_root_dir=cfg['data_root'], c='val')
+    val_data.batch_size = cfg['batch_size']
+    val_loader = val_data.get_loader()
 
     # lr schedule
     sche = lr_schedule(cfg['batch_size'], max_epoch=cfg['epoch_end'])
@@ -73,7 +81,8 @@ def main_worker(cfg):
     schedule = LambdaLR(optimizer, lr_lambda=sche, last_epoch=-1)
 
     # loss
-    criterion = DiceLoss()
+    # criterion = DiceLoss()
+    criterion = CELoss()
 
     # recovery
     if cfg['recover_epoch'] != -1:
@@ -89,15 +98,14 @@ def main_worker(cfg):
 
         # train
         batch_count = 0
+        loss_epoch = 0
 
         model.train()
-        loss_epoch = 0
-        for im1, im2, label, sam_feature, name in tqdm(train_loader, desc='Train Epoch {}: '.format(epoch)):
+        for im1, im2, label, name in tqdm(train_loader, desc='Train Epoch {}: '.format(epoch)):
             im1 = im1.to(device)
             im2 = im2.to(device)
             label = label.to(device)
-            sam_feature = sam_feature.to(device)
-            outputs = model(im1, im2, sam_feature)
+            outputs = model(im1, im2)
             loss = criterion(outputs, label)
 
             # backward
@@ -106,13 +114,34 @@ def main_worker(cfg):
             optimizer.step()
 
             loss_epoch += loss.item()
-
             batch_count += 1
-
-        schedule.step()
 
         writer.add_scalar(tag='train_epoch_loss', global_step=epoch, scalar_value=loss_epoch/batch_count)
         print('train_epoch_loss', loss_epoch/batch_count)
+
+        writer.add_scalar(tag='lr', global_step=epoch, scalar_value=optimizer.param_groups[0]['lr'])
+        schedule.step()
+
+        torch.cuda.empty_cache()
+
+        # val
+        batch_count = 0
+        loss_epoch = 0
+
+        model.eval()
+        for im1, im2, label, name in tqdm(val_loader, desc='Val Epoch {}: '.format(epoch)):
+            im1 = im1.to(device)
+            im2 = im2.to(device)
+            label = label.to(device)
+            with torch.no_grad():
+                outputs = model(im1, im2)
+                loss = criterion(outputs, label)
+
+            loss_epoch += loss.item()
+            batch_count += 1
+
+        writer.add_scalar(tag='val_epoch_loss', global_step=epoch, scalar_value=loss_epoch/batch_count)
+        print('val_epoch_loss', loss_epoch/batch_count)
 
         # save check ================================================================================================
         if epoch in cfg['check_epoch']:
@@ -166,5 +195,48 @@ class DiceLoss(nn.Module):
         return score
 
 
+class CELoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.criterion = nn.CrossEntropyLoss()
+
+    def forward(self, predict, label):
+        """
+        predict: B 2 H W  cuda tensor
+        label: B 1 H W  0-1 cuda tensor
+        """
+        predict = predict.permute(0, 2, 3, 1).reshape(-1, 2)
+        label = label.permute(0, 2, 3, 1).reshape(-1, 1).squeeze()
+        loss = self.criterion(predict, label)
+
+        return loss
+
+
+def mIOU(predict, label):
+    """
+    predict: B 2 H W  tensor cpu
+    label: B 1 H W  0-1 tensor cpu
+    """
+    # --> B*H*W 2
+    predict = predict.permute(0, 2, 3, 1).reshape(-1, 2)
+    # --> B*H*W
+    label = label.permute(0, 2, 3, 1).reshape(-1, 1).squeeze()
+    pre = torch.argmax(F.softmax(predict, dim=1), dim=1)
+    TP, FP, TN, FN = 0, 0, 0, 0
+    for index in range(label.shape[0]):
+        if pre[index] == 1 and label[index] == 1:
+            TP += 1
+        if pre[index] == 0 and label[index] == 0:
+            TN += 1
+        if pre[index] == 1 and label[index] == 0:
+            FP += 1
+        if pre[index] == 0 and label[index] == 1:
+            FN += 1
+
+    score = 0.5 * TP / (TP + FP + FN) + 0.5 * TN / (TN + FP + FN)
+
+    return score, TP, FP, TN, FN
+
+
 if __name__ == '__main__':
-    launch(CD_v2)
+    launch(MixChanger_v1)

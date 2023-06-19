@@ -52,7 +52,7 @@ def make_sam_feature():
 
     os.mkdir('DATA/CD_dataset/train/sam_feature')
 
-    for im1, im2, label, name in tqdm(loader, desc='make train sam feature'):
+    for im1, im2, name in tqdm(loader, desc='make train sam feature'):
 
         # --> 4 3 512 512
         im1 = im1.to(device)

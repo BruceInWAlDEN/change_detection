@@ -19,7 +19,7 @@ import torch.nn.functional as F
 changer_base = {
     # encoder hyper
     'patch_size': 16,
-    'channel': 3,
+    'input_channel': 3,
     'dim': 768,
     'num_head': 12,
     'mlp_ratio': 4,
@@ -144,7 +144,7 @@ def squence2image(tensor, patch_size, channel):
     return tensor
 
 
-MixChanger_base = {
+MixChangerSam_base = {
     'encoder_dim': 768,
     'input_channel': 3,
     'patch_size': 16,
@@ -154,8 +154,17 @@ MixChanger_base = {
     'sam_feature_dim': 512
 }
 
+MixChanger_base = {
+    'encoder_dim': 768,
+    'input_channel': 3,
+    'patch_size': 16,
+    'encoder_num_head': 12,
+    'encoder_mlp_ratio': 4,
+    'depth': None,
+}
 
-class MixChanger(nn.Module):
+
+class MixChangerSam(nn.Module):
     def __init__(self,
                  encoder_dim=768,
                  input_channel=3,
@@ -163,11 +172,13 @@ class MixChanger(nn.Module):
                  encoder_num_head=12,
                  encoder_mlp_ratio=4,
                  depth=None,
-                 sam_feature_dim=512
+                 sam_feature_dim=512,
+                 output_channel=1
                  ):
         super().__init__()
         if depth is None:
             depth = [2, 2, 2, 2]
+        self.output_channel = output_channel
         self.sam_feature_dim = sam_feature_dim
         self.patch_size = patch_size
         self.encoder_dim = encoder_dim
@@ -246,7 +257,7 @@ class MixChanger(nn.Module):
             nn.GELU(),
             nn.Conv2d(
                 in_channels=6 * self.input_channel,
-                out_channels=1,
+                out_channels=self.output_channel,
                 kernel_size=(1, 1)
             )
         )
@@ -332,5 +343,165 @@ class MixChanger(nn.Module):
         # --> B input_channel*6 im_h im_w
         mask = self.ffn_and_project(im_merge)
 
-        # --> B 1 im_h im_w --> B im_h im_w
-        return mask.squeeze(1)
+        return mask
+
+
+class MixChanger(nn.Module):
+    def __init__(self,
+                 encoder_dim=768,
+                 input_channel=3,
+                 patch_size=16,
+                 encoder_num_head=12,
+                 encoder_mlp_ratio=4,
+                 depth=None,
+                 output_channel=2
+                 ):
+        super().__init__()
+        if depth is None:
+            depth = [2, 2, 2, 2]
+        self.output_channel = output_channel
+        self.patch_size = patch_size
+        self.encoder_dim = encoder_dim
+        self.input_channel = input_channel
+        self.depth = depth
+        self.patch_embedding = nn.Conv2d(
+            in_channels=self.input_channel,
+            out_channels=self.encoder_dim,
+            kernel_size=(patch_size, patch_size),
+            stride=(patch_size, patch_size),
+        )
+        self.encoder_stage_one = nn.ModuleList([
+            Block(dim=encoder_dim, num_head=encoder_num_head, mlp_ratio=encoder_mlp_ratio
+            ) for _ in range(depth[0])
+        ])
+        self.encoder_stage_two = nn.ModuleList([
+            Block(dim=encoder_dim, num_head=encoder_num_head, mlp_ratio=encoder_mlp_ratio
+            ) for _ in range(depth[1])
+        ])
+        self.encoder_stage_three = nn.ModuleList([
+            Block(dim=encoder_dim, num_head=encoder_num_head, mlp_ratio=encoder_mlp_ratio
+            ) for _ in range(depth[2])
+        ])
+        self.encoder_stage_four = nn.ModuleList([
+            Block(dim=encoder_dim, num_head=encoder_num_head, mlp_ratio=encoder_mlp_ratio
+            ) for _ in range(depth[3])
+        ])
+        self.attention_feature_merge = nn.Linear(self.encoder_dim, 1)
+        self.MixFFN = MixFFN(6 * self.input_channel, 6 * self.input_channel)
+
+        self.ffn_and_expand = nn.Sequential(
+            nn.Linear(self.encoder_dim, int(patch_size * patch_size * self.input_channel)),
+            nn.GELU(),
+            nn.Linear(int(patch_size * patch_size * self.input_channel), int(patch_size * patch_size * self.input_channel))
+        )
+        self.attention_im_merge = nn.Linear(encoder_dim, 1)
+
+        # 细化边界
+        self.ffn_and_project = nn.Sequential(
+            nn.Conv2d(
+                in_channels=6 * self.input_channel,
+                out_channels=6 * self.input_channel,
+                kernel_size=(8, 8),
+                padding='same',
+                padding_mode='reflect'
+            ),
+            nn.GELU(),
+            nn.Conv2d(
+                in_channels=6 * self.input_channel,
+                out_channels=6 * self.input_channel,
+                kernel_size=(5, 5),
+                padding='same',
+                padding_mode='reflect'
+            ),
+            nn.GELU(),
+            nn.Conv2d(
+                in_channels=6 * self.input_channel,
+                out_channels=6 * self.input_channel,
+                kernel_size=(3, 3),
+                padding='same',
+                padding_mode='reflect'
+            ),
+            nn.GELU(),
+            nn.Conv2d(
+                in_channels=6 * self.input_channel,
+                out_channels=self.output_channel,
+                kernel_size=(1, 1)
+            )
+        )
+
+        self.spatial_exchange = SpatialExchange()
+        self.channel_exchange = ChannelExchange()
+
+    def forward(self, im1, im2):
+        """
+        im1. im2: (B 3 512 512)  0-1 RGB
+        sam_feature: (B 512 32 32)
+        --> mask (B im_h im_w)
+        """
+        # B 3 512 512 --> B dim 32 32
+        xa1 = self.patch_embedding(im1)
+        xb1 = self.patch_embedding(im2)
+
+        # B dim 32 32 --> B dim 32 32
+        for blk in self.encoder_stage_one:
+            xa1 = blk(xa1)
+            xb1 = blk(xb1)
+
+        xa2, xb2 = xa1, xb1
+
+        # B dim 32 32 --> B dim 32 32
+        for blk in self.encoder_stage_two:
+            xa2 = blk(xa2)
+            xb2 = blk(xb2)
+
+        xa3, xb3 = xa2, xb2
+        xa3, xb3 = self.spatial_exchange(xa3, xb3)
+
+        # B dim 32 32 --> B dim 32 32
+        for blk in self.encoder_stage_three:
+            xa3 = blk(xa3)
+            xb3 = blk(xb3)
+
+        xa4, xb4 = xa3, xb3
+        xa4, xb4 = self.channel_exchange(xa4, xb4)
+
+        # B dim 32 32 --> B dim 32 32
+        for blk in self.encoder_stage_four:
+            xa4 = blk(xa4)
+            xb4 = blk(xb4)
+
+        xa5, xb5 = xa4, xb4
+        xa5, xb5 = self.channel_exchange(xa5, xb5)
+
+        # --> 10 B dim 32 32
+        feature_merge = torch.stack([xa5, xa4, xa3, xa2, xa1, xb5, xb4, xb3, xb2, xb1], dim=0)
+
+        # --> B 32 32 10 dim --> B 32 32 10
+        attention_score = self.attention_feature_merge(feature_merge.permute(1, 3, 4, 0, 2))
+        attention_score = F.softmax(attention_score.squeeze(), dim=3)
+
+        # --> B 32 32 dim
+        feature_merge = feature_merge.permute(1, 3, 4, 2, 0) @ attention_score.unsqueeze(0).permute(1, 2, 3, 4, 0)
+        feature_merge = feature_merge.squeeze()
+
+        # --> B 32 32 patch*patch*3
+        expand_feature = self.ffn_and_expand(feature_merge).permute(0, 3, 1, 2)
+
+        # --> B patch*patch*input_channel 32 32
+        # --> B 32 32 patch*patch*input_channel --> B 32 32 input_channel patch_size patch_size
+        batch, dim, patch_h, patch_w = expand_feature.shape
+        expand_feature = expand_feature.permute(0, 2, 3, 1).reshape(batch, patch_h, patch_w, self.input_channel, self.patch_size, self.patch_size)
+
+        # [先从左到右 后从上到下] // B input_channel patch_size patch_size
+        expand_feature = [expand_feature[:, hh, ww, :, :, :] for hh in range(patch_h) for ww in range(patch_w)]
+        expand_feature = [torch.cat(expand_feature[_ * patch_w:_ * patch_w + patch_w], dim=3) for _ in range(patch_w)]
+        expand_feature = torch.cat(expand_feature, dim=2)
+
+        # --> B input_channel*6 im_h im_w
+        im_merge = torch.cat([expand_feature, im1, im2, im1-im2, im2-im1, torch.abs(im1-im2)], dim=1)
+        im_merge = self.MixFFN(im_merge)
+
+        # --> B input_channel*6 im_h im_w
+        mask = self.ffn_and_project(im_merge)
+
+        return mask
