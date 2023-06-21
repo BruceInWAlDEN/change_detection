@@ -11,7 +11,6 @@ from model.model import MixChanger, MixChanger_base
 from tqdm import tqdm
 from dataset import Mydata
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 MixChanger_v1 = {
