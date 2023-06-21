@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import random
+
 import numpy as np
 import os
 import torch
 import torch.utils.data as dd
 import cv2
-from tqdm import tqdm
+import multiprocessing.dummy as mp
 from torchvision.transforms import ToTensor
 
 
@@ -71,10 +73,10 @@ class Mydata(object):
         self.c = c
         self.dataset = None
         self.batch_size = 1
-        self._set_dataset()
 
-    def _set_dataset(self):
+    def set_dataset(self, num):
         self.dataset = []
+
         if self.c == 'sam_train' or self.c == 'train' or self.c == 'train_sam':
             im_names = [_.split('.')[0] for _ in os.listdir(os.path.join(self.data_root_dir, 'train', 'Image1'))]
         if self.c == 'sam_val' or self.c == 'val' or self.c == 'val_sam':
@@ -82,10 +84,19 @@ class Mydata(object):
         if self.c == 'sam_test' or self.c == 'test' or self.c == 'test_sam':
             im_names = [_.split('.')[0] for _ in os.listdir(os.path.join(self.data_root_dir, 'test', 'Image1'))]
 
-        for name in tqdm(im_names, desc='load data: '):
-            re = self.read_pair(name)
-            re.append(name)
+        random.shuffle(im_names)
+        im_names = im_names[:num]
+
+        def read_(name_):
+            re = self.read_pair(name_)
+            re.append(name_)
             self.dataset.append(re)
+
+        pool = mp.Pool()
+        for name in im_names:
+            pool.apply_async(read_, (name,))
+        pool.close()
+        pool.join()
 
     def get_loader(self):
         sample_loader = dd.DataLoader(
@@ -141,14 +152,3 @@ class Mydata(object):
                 numpy_im.append(cv2.imread(os.path.join(self.data_root_dir, self.c, s, im_name + format_[s])))
 
         return numpy_im
-
-
-if __name__ == '__main__':
-    data = Mydata(data_root_dir='DATA/CD_dataset/', c='test')
-    loader = data.get_loader()
-    for im1, im2, sam_feature, name in tqdm(loader):
-        print(im1.shape)
-        print(im2.shape)
-        print(sam_feature.shape)
-        print(name[0])
-    pass

@@ -20,10 +20,23 @@ MixChanger_v1 = {
     'batch_size': 4,
     'epoch_start': 1,
     'epoch_end': 400,
-    'logdir_path': 'DATA/MxiChanger_v1_log',
+    'logdir_path': 'DATA/MixChanger_v1_log',
     'check_epoch': [_ for _ in range(400) if _ % 4 == 1],
     'recover_epoch': -1,
     'data_root': 'DATA/CD_dataset'
+}
+
+# expand dataset
+MixChanger_v2 = {
+    'model_name': 'MixChanger_v2',
+    'cuda_id': 0,
+    'batch_size': 4,
+    'epoch_start': 1,
+    'epoch_end': 400,
+    'logdir_path': 'DATA/MixChanger_v2_log',
+    'check_epoch': [_ for _ in range(400) if _ % 4 == 1],
+    'recover_epoch': -1,
+    'data_root': 'DATA/expand_dataset'
 }
 
 
@@ -69,11 +82,9 @@ def main_worker(cfg):
     # data
     train_data = Mydata(data_root_dir=cfg['data_root'], c='train')
     train_data.batch_size = cfg['batch_size']
-    train_loader = train_data.get_loader()
 
     val_data = Mydata(data_root_dir=cfg['data_root'], c='val')
     val_data.batch_size = cfg['batch_size']
-    val_loader = val_data.get_loader()
 
     # lr schedule
     sche = lr_schedule(cfg['batch_size'], max_epoch=cfg['epoch_end'])
@@ -97,6 +108,8 @@ def main_worker(cfg):
     for epoch in range(cfg['epoch_start'], cfg['epoch_end'] + 1):
 
         # train
+        train_data.set_dataset(2000)
+        train_loader = train_data.get_loader()
         batch_count = 0
         loss_epoch = 0
 
@@ -125,6 +138,8 @@ def main_worker(cfg):
         torch.cuda.empty_cache()
 
         # val
+        val_data.set_dataset(200)
+        val_loader = val_data.get_loader()
         batch_count = 0
         loss_epoch = 0
 
@@ -212,31 +227,5 @@ class CELoss(nn.Module):
         return loss
 
 
-def mIOU(predict, label):
-    """
-    predict: B 2 H W  tensor cpu
-    label: B 1 H W  0-1 tensor cpu
-    """
-    # --> B*H*W 2
-    predict = predict.permute(0, 2, 3, 1).reshape(-1, 2)
-    # --> B*H*W
-    label = label.permute(0, 2, 3, 1).reshape(-1, 1).squeeze()
-    pre = torch.argmax(F.softmax(predict, dim=1), dim=1)
-    TP, FP, TN, FN = 0, 0, 0, 0
-    for index in range(label.shape[0]):
-        if pre[index] == 1 and label[index] == 1:
-            TP += 1
-        if pre[index] == 0 and label[index] == 0:
-            TN += 1
-        if pre[index] == 1 and label[index] == 0:
-            FP += 1
-        if pre[index] == 0 and label[index] == 1:
-            FN += 1
-
-    score = 0.5 * TP / (TP + FP + FN) + 0.5 * TN / (TN + FP + FN)
-
-    return score, TP, FP, TN, FN
-
-
 if __name__ == '__main__':
-    launch(MixChanger_v1)
+    launch(MixChanger_v2)
