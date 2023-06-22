@@ -39,6 +39,21 @@ MixChanger_v2 = {
 }
 
 
+# expand dataset pre finetune on cd
+MixChanger_v3 = {
+    'model_name': 'MixChanger_v3',
+    'cuda_id': 0,
+    'batch_size': 4,
+    'epoch_start': 1,
+    'epoch_end': 400,
+    'logdir_path': 'DATA/MixChanger_v3_log',
+    'check_epoch': [_ for _ in range(400) if _ % 4 == 1],
+    'recover_epoch': -1,
+    'data_root': 'DATA/CD_dataset',
+    'pretrain_weight': 'DATA/MixChanger_v2_log/MixChanger_v2_185.pth'
+}
+
+
 def launch(cfg):
 
     # set random seed
@@ -77,6 +92,11 @@ def main_worker(cfg):
     # model
     model = MixChanger(**MixChanger_base)
     model.to(device)
+
+    if cfg['pretrain_weight']:
+        pth = torch.load(cfg['pretrain_weight'], map_location='cpu')
+        model.load_state_dict(pth['model_weights'])  # before wrap param
+        print('load pretrain_weight: {}'.format(cfg['pretrain_weight']))
 
     # data
     train_data = Mydata(data_root_dir=cfg['data_root'], c='train')
@@ -227,4 +247,4 @@ class CELoss(nn.Module):
 
 
 if __name__ == '__main__':
-    launch(MixChanger_v2)
+    launch(MixChanger_v3)

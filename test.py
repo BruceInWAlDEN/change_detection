@@ -32,20 +32,14 @@ def mIOU(predict, label):
     # --> B*H*W
     label = label.permute(0, 2, 3, 1).reshape(-1, 1).squeeze()
     pre = torch.argmax(F.softmax(predict, dim=1), dim=1)
-    TP, FP, TN, FN = 0, 0, 0, 0
-    for index in range(label.shape[0]):
-        if pre[index] == 1 and label[index] == 1:
-            TP += 1
-        if pre[index] == 0 and label[index] == 0:
-            TN += 1
-        if pre[index] == 1 and label[index] == 0:
-            FP += 1
-        if pre[index] == 0 and label[index] == 1:
-            FN += 1
 
-    score = 0.5 * TP / (TP + FP + FN) + 0.5 * TN / (TN + FP + FN)
+    TP = torch.sum(label & pre)
+    TN = torch.sum((1-label) & (1-pre))
+    FP_FN = torch.sum(label ^ pre)
 
-    return score, TP, FP, TN, FN
+    score = 0.5 * TP / (TP + FP_FN) + 0.5 * TN / (TN + FP_FN)
+
+    return score
 
 
 def test(cfg):
@@ -109,37 +103,40 @@ def show_test(cfg):
     test_data.set_dataset(1000)
     test_loader = test_data.get_loader()
 
-    # model
-    w = torch.load(cfg['model_weight'], map_location='cpu')['model_weights']
-    model.load_state_dict(w)
-    model.to(device)
-    model.eval()
+    for check in [_ for _ in range(400) if _ % 4 == 1]:
+        test_cfg['model_weight'] = 'DATA/MixChanger_v3_log/MixChanger_v3_{}.pth'.format(check)
 
-    result = []
-    for im1, im2, label, name in tqdm(test_loader, desc='Reference: '):
-        im1 = im1.to(device)
-        im2 = im2.to(device)
+        # model
+        w = torch.load(cfg['model_weight'], map_location='cpu')['model_weights']
+        model.load_state_dict(w)
+        model.to(device)
+        model.eval()
 
-        with torch.no_grad():
-            mask = model(im1, im2)
+        result = []
+        for im1, im2, label, name in tqdm(test_loader, desc='Reference: '):
+            im1 = im1.to(device)
+            im2 = im2.to(device)
 
-        mask = mask.detach().clone().cpu()
+            with torch.no_grad():
+                mask = model(im1, im2)
 
-        result.append(mIOU(mask, label))
-        # for index in range(len(name)):
-        #     pre = torch.argmax(mask[index], dim=0)
-        #     label_ = label[index].squeeze()
-        #     plt.subplot(1,2,1)
-        #     plt.imshow(im1[index].cpu().numpy().transpose(1,2,0))
-        #     plt.subplot(1,2,2)
-        #     plt.imshow(im2[index].cpu().numpy().transpose(1,2,0))
-        #     plt.show()
-        #
-        #     plt.matshow(np.concatenate([label_.numpy(), pre.numpy()], axis=1)/1.)
-        #     plt.show()
-        #
-    score = [_[0] for _ in result]
-    print('score', sum(score)/len(score))
+            mask = mask.detach().clone().cpu()
+
+            result.append(mIOU(mask, label))
+            # for index in range(len(name)):
+            #     pre = torch.argmax(mask[index], dim=0)
+            #     label_ = label[index].squeeze()
+            #     plt.subplot(1,2,1)
+            #     plt.imshow(im1[index].cpu().numpy().transpose(1,2,0))
+            #     plt.subplot(1,2,2)
+            #     plt.imshow(im2[index].cpu().numpy().transpose(1,2,0))
+            #     plt.show()
+            #
+            #     plt.matshow(np.concatenate([label_.numpy(), pre.numpy()], axis=1)/1.)
+            #     plt.show()
+            #
+
+        print('check {}, score: '.format(check), sum(result)/len(result))
 
 
 if __name__ == '__main__':
