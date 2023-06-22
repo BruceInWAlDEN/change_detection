@@ -34,7 +34,7 @@ MixChanger_v2 = {
     'epoch_end': 400,
     'logdir_path': 'DATA/MixChanger_v2_log',
     'check_epoch': [_ for _ in range(400) if _ % 4 == 1],
-    'recover_epoch': -1,
+    'recover_epoch': 189,
     'data_root': 'DATA/expand_dataset'
 }
 

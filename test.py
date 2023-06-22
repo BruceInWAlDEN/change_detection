@@ -12,11 +12,12 @@ import os
 import cv2
 import pdb
 import matplotlib.pyplot as plt
+import pdb
 
 test_cfg = {
     'cuda_id': 1,
     'result_save_dir': 'submit',
-    'model_weight': 'DATA/MixChanger_v1_log/MixChanger_v1_61.pth',
+    'model_weight': 'DATA/MixChanger_v2_log/MixChanger_v2_121.pth',
     'batch_size': 4
 }
 
@@ -105,6 +106,7 @@ def show_test(cfg):
     # data
     test_data = Mydata(data_root_dir='DATA/CD_dataset', c='val')
     test_data.batch_size = cfg['batch_size']
+    test_data.set_dataset(1000)
     test_loader = test_data.get_loader()
 
     # model
@@ -123,17 +125,21 @@ def show_test(cfg):
 
         mask = mask.detach().clone().cpu()
 
-        for index in range(len(name)):
-            pre = torch.argmax(mask[index], dim=0)
-
-            plt.subplot(1,2,1)
-            plt.imshow(im1[index].cpu().numpy().transpose(1,2,0))
-            plt.subplot(1,2,2)
-            plt.imshow(im2[index].cpu().numpy().transpose(1,2,0))
-            plt.show()
-
-            plt.matshow(np.concatenate([label[index].squeeze().numpy(), pre], axis=1)/1.)
-            plt.show()
+        result.append(mIOU(mask, label))
+        # for index in range(len(name)):
+        #     pre = torch.argmax(mask[index], dim=0)
+        #     label_ = label[index].squeeze()
+        #     plt.subplot(1,2,1)
+        #     plt.imshow(im1[index].cpu().numpy().transpose(1,2,0))
+        #     plt.subplot(1,2,2)
+        #     plt.imshow(im2[index].cpu().numpy().transpose(1,2,0))
+        #     plt.show()
+        #
+        #     plt.matshow(np.concatenate([label_.numpy(), pre.numpy()], axis=1)/1.)
+        #     plt.show()
+        #
+    score = [_[0] for _ in result]
+    print('score', sum(score)/len(score))
 
 
 if __name__ == '__main__':
