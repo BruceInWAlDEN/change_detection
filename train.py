@@ -27,6 +27,7 @@ MixChanger_v1 = {
 
 # expand dataset
 MixChanger_v2 = {
+    'pretrain_weight': '',
     'model_name': 'MixChanger_v2',
     'cuda_id': 0,
     'batch_size': 4,
@@ -247,4 +248,4 @@ class CELoss(nn.Module):
 
 
 if __name__ == '__main__':
-    launch(MixChanger_v3)
+    launch(MixChanger_v2)

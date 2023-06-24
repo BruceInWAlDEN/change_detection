@@ -104,7 +104,9 @@ def show_test(cfg):
     test_loader = test_data.get_loader()
 
     for check in [_ for _ in range(400) if _ % 4 == 1]:
-        test_cfg['model_weight'] = 'DATA/MixChanger_v3_log/MixChanger_v3_{}.pth'.format(check)
+        if check <= 49:
+            continue
+        test_cfg['model_weight'] = 'DATA/MixChanger_v2_log/MixChanger_v2_{}.pth'.format(check)
 
         # model
         w = torch.load(cfg['model_weight'], map_location='cpu')['model_weights']
