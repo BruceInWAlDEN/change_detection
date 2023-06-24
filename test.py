@@ -103,7 +103,7 @@ def show_test(cfg):
     test_data.set_dataset(1000)
     test_loader = test_data.get_loader()
 
-    for check in [_ for _ in range(400) if _ % 4 == 1]:
+    for check in [221, 225]:
         if check <= 49:
             continue
         test_cfg['model_weight'] = 'DATA/MixChanger_v2_log/MixChanger_v2_{}.pth'.format(check)
